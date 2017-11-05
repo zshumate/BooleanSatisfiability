@@ -1,6 +1,0 @@
-[submodule "RubiksCubeOptimization"]
-	path = RubiksCubeOptimization
-	url = git@github.com:zshumate/RubiksCubeOptimization.git
-[submodule "git"]
-	path = git
-	url = git@github.com:zshumate/RubiksCubeOptimization.git
