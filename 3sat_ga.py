@@ -21,6 +21,7 @@ class GASATOptions():
         self.parser = argparse.ArgumentParser()
 
         self.parser.add_argument('--data_path', required=True, help="data file containing problem to satisfy")
+        self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
     def parse_args(self):
         return self.parser.parse_args()
