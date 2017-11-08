@@ -26,22 +26,6 @@ class GASATOptions():
         return self.parser.parse_args()
 
 
-#loads given data file and initializes a graph containing the appropriate nodes
-def initialize_graph(data_path):
-    graph = TSPGraph()
-
-    f = open("./%s" % data_path)
-    lines = f.readlines()[DATA_OFFSET:]
-    f.close()
-
-    for line in lines:
-        x, y = line.strip().split()[COORDINATES_OFFSET:]
-        graph.add_vertex(x, y)
-
-    graph.add_edges()
-
-    return graph
-
 #initializes population according to some strategy
 def initialize_population():
 
