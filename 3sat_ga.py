@@ -21,6 +21,8 @@ class GASATOptions():
         self.parser = argparse.ArgumentParser()
 
         self.parser.add_argument('--data_path', default="./sat_data_20_91/uf20-01.cnf", help="data file containing problem to satisfy")
+        self.parser.add_argument('--initialization_strategy', default="random", help="initialization strategy for GA population")
+        self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
     def parse_args(self):
@@ -67,12 +69,20 @@ class SATSolver():
         for clause in self.clauses:
             true_count += self.makes_true(clause, variables)
 
-        return true_count
+        return self.clause_count - true_count
+
+    def get_num_variables(self):
+        return self.variable_count
 
 
 # initializes population according to some strategy
-def initialize_population():
-    print "hi"
+def initialize_population(solver, population_size, initialization_strategy):
+    if initialization_strategy == "random":
+        population = [np.random.choice([0, 1], size=solver.get_num_variables()) for i in range(population_size)]
+    else:
+        raise NotImplementedError("Invalid choice of initialization strategy!")
+
+    return population
 
 #selects parents to mate based on probabilities assigned by parent individual costs
 def select_mating_pairs():
@@ -91,9 +101,9 @@ def get_best_child():
     print "hi"
 
 #solve TSP using a genetic algorithm
-def ga_solve():
+def ga_solve(solver, args):
     start_time = time.time()
-    population = initialize_population()
+    population = initialize_population(solver, args.population_size, args.initialization_strategy)
     generation_count, no_improvement_count = 0, 0
     best_cost, best_solution = np.inf, None
     combined_solution_costs, best_child_costs = [], []
@@ -133,5 +143,4 @@ def ga_solve():
 if __name__ == "__main__":
     args = GASATOptions().parse_args()
     sat_solver = SATSolver(args.data_path)
-    print sat_solver.test_solution([1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1])
-    # ga_solve()
+    ga_solve(sat_solver, args)
