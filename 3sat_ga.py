@@ -6,15 +6,13 @@ CECS 545 Final Project
 
 import argparse
 import time
-import os
 import random
 import numpy as np
 
 
 #constants
-variables = []
-clauses = []
-count = 0
+VAR_COUNT_OFFSET = 2
+CLAUSE_COUNT_OFFSET = 3
 
 
 #options for running solver
@@ -22,56 +20,75 @@ class GASATOptions():
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-        self.parser.add_argument('--data_path', required=True, help="data file containing problem to satisfy")
+        self.parser.add_argument('--data_path', default="./sat_data_20_91/uf20-01.cnf", help="data file containing problem to satisfy")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
     def parse_args(self):
         return self.parser.parse_args()
 
+#solver structure for 3-SAT
+class SATSolver():
+    def __init__(self, data_path):
+        self.variables, self.clauses = [], []
+        self.variable_count, self.clause_count = 0, 0
 
-#reads in data from a provided file
-def read_file(data_path):
-    f = open("%s" % data_path)
-    with open('./%s' % data_path) as f:
-        for line in f:
-            words = line.strip('\n').split(' ')
-            if words[0] == 'c':
-                continue
-            elif words[0] == 'p':
-                variableCount = int(words[2])
-                clauseCount = int(words[4])
-                for i in xrange(variableCount):
-                    variables.append(False)
-                for i in xrange(clauseCount):
-                    clauses.append('')
-            else:
-                for x in words:
-                    if x == '0' or x == '%':
-                        break
-                    elif x == '':
-                        continue
-                    else:
-                        if int(x) > 0:
-                            x = str(int(x) - 1)
-                        else:
-                            x = str(int(x) + 1)
-                        clauses[count] += (x + ' ')
-                count += 1
+        with open(data_path) as f:
+            for line in f:
+                words = line.split()
 
-#initializes population according to some strategy
+                if words[0] == "c":
+                    continue
+                elif words[0] == "%":
+                    break
+                elif words[0] == "p":
+                    self.variable_count = int(words[VAR_COUNT_OFFSET])
+                    self.clause_count = int(words[CLAUSE_COUNT_OFFSET])
+                    self.variables = [False for i in range(self.variable_count)]
+                else:
+                    clause = []
+
+                    for i in range(len(words[:-1])):
+                        clause.append(int(words[i]))
+
+                    self.clauses.append(clause)
+
+    def makes_true(self, clause, variables):
+        for var in clause:
+            if var > 0 and variables[var-1] == 1:
+                return 1
+            elif var < 0  and variables[(-1*var)-1] == 0:
+                return 1
+
+        return 0
+
+    def test_solution(self, variables):
+        true_count = 0
+
+        for clause in self.clauses:
+            true_count += self.makes_true(clause, variables)
+
+        return true_count
+
+
+# initializes population according to some strategy
 def initialize_population():
+    print "hi"
 
 #selects parents to mate based on probabilities assigned by parent individual costs
 def select_mating_pairs():
+    print "hi"
 
 #combines two parent solutions to produce a child
 def crossover():
+    print "hi"
 
 #combine population solutions via Wisdom of Crowds and find its weight
 def combine_via_woc():
+    print "hi"
 
 #find the best individual and its cost in the current generation
 def get_best_child():
+    print "hi"
 
 #solve TSP using a genetic algorithm
 def ga_solve():
@@ -110,8 +127,11 @@ def ga_solve():
     print "Execution Time: %g seconds" % (time.time() - start_time)
 
     if args.visualize_results:
+        print "hi"
 
 
 if __name__ == "__main__":
     args = GASATOptions().parse_args()
-    ga_solve()
+    sat_solver = SATSolver(args.data_path)
+    print sat_solver.test_solution([1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1])
+    # ga_solve()
