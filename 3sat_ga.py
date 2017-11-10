@@ -23,6 +23,9 @@ class GASATOptions():
         self.parser.add_argument('--data_path', default="./sat_data_20_91/uf20-01.cnf", help="data file containing problem to satisfy")
         self.parser.add_argument('--initialization_strategy', default="random", help="initialization strategy for GA population")
         self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
+        self.parser.add_argument('--selection_strategy', default="bin", help="selection strategy for GA")
+        self.parser.add_argument('--number_of_bins', type=int, default=5, help="number of bins for binning selection strategy")
+        self.parser.add_argument('--generations_limit', type=int, default=100, help="number of generations to continue w/o improvement")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
     def parse_args(self):
@@ -69,10 +72,13 @@ class SATSolver():
         for clause in self.clauses:
             true_count += self.makes_true(clause, variables)
 
-        return self.clause_count - true_count
+        return true_count
 
     def get_num_variables(self):
         return self.variable_count
+
+    def get_num_clauses(self):
+        return self.clause_count
 
 
 # initializes population according to some strategy
@@ -85,8 +91,42 @@ def initialize_population(solver, population_size, initialization_strategy):
     return population
 
 #selects parents to mate based on probabilities assigned by parent individual costs
-def select_mating_pairs():
-    print "hi"
+def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
+    parent_pairs = []
+
+    if selection_strategy == "bin":
+        individual_costs = [(i, solver.test_solution(population[i])) for i in range(len(population))]
+        individual_costs.sort(key=lambda x: x[1])
+        n = len(population) / number_of_bins
+        bins = [individual_costs[i:i+n] for i in range(0, len(individual_costs), n)]
+
+        for i in range(len(bins)):
+            bins[i] = [pair[0] for pair in bins[i]]
+
+        bin_percent = 1.0 / sum(range(1, number_of_bins+1))
+        intervals, begin_interval, end_interval = [], 0.0, 0.0
+
+        for i in range(len(bins)):
+            interval_value = (i+1) * (bin_percent / len(bins[i]))
+
+            for individual in bins[i]:
+                end_interval += interval_value
+                intervals.append((individual, begin_interval, end_interval))
+                begin_interval = end_interval
+
+        for i in range(len(population)):
+            i, j = random.random(), random.random()
+            parent1 = [x[0] for x in intervals if x[1] <= i < x[2]][0]
+            parent2 = [x[0] for x in intervals if x[1] <= j < x[2]][0]
+
+            if individual_costs[parent1][1] > individual_costs[parent2][1]:
+                parent_pairs.append((population[parent1], population[parent2]))
+            else:
+                parent_pairs.append((population[parent2], population[parent1]))
+    else:
+        raise NotImplementedError("Invalid choice of selection strategy!")
+
+    return parent_pairs
 
 #combines two parent solutions to produce a child
 def crossover():
@@ -109,7 +149,7 @@ def ga_solve(solver, args):
     combined_solution_costs, best_child_costs = [], []
 
     while no_improvement_count < args.generations_limit:
-        parents_to_mate = select_mating_pairs()
+        parents_to_mate = select_mating_pairs(solver, population, args.number_of_bins, args.selection_strategy)
         children = [crossover() for parents in parents_to_mate]
         children = [mutate() for child in children]
         combined_soln, combined_soln_cost = combine_via_woc()
