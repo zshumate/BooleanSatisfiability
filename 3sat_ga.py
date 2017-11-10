@@ -38,7 +38,7 @@ class GASATOptions():
 #solver structure for 3-SAT
 class SATSolver():
     def __init__(self, data_path):
-        self.variables, self.clauses = [], []
+        self.clauses = []
         self.variable_count, self.clause_count = 0, 0
 
         with open(data_path) as f:
@@ -52,7 +52,6 @@ class SATSolver():
                 elif words[0] == "p":
                     self.variable_count = int(words[VAR_COUNT_OFFSET])
                     self.clause_count = int(words[CLAUSE_COUNT_OFFSET])
-                    self.variables = [False for i in range(self.variable_count)]
                 else:
                     self.clauses.append([int(words[i]) for i in range(len(words[:-1]))])
 
