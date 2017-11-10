@@ -132,6 +132,11 @@ def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
 def crossover():
     print "hi"
 
+#mutates a chromosome within a member of the population
+def mutation(variables):
+    rand = random.randint(0,VAR_COUNT_OFFSET)
+    variables[rand] = !variables[rand]
+
 #combine population solutions via Wisdom of Crowds and find its weight
 def combine_via_woc():
     print "hi"
