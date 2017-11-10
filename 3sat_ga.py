@@ -136,6 +136,8 @@ def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
                 parent_pairs.append((population[parent1], population[parent2]))
             else:
                 parent_pairs.append((population[parent2], population[parent1]))
+    # elif selection_strategy == "ordered":
+    #
     else:
         raise NotImplementedError("Invalid choice of selection strategy!")
 
@@ -151,6 +153,10 @@ def crossover(solver, parents, crossover_strategy):
                 child.append(parents[0][i])
             else:
                 child.append(parents[1][i])
+    elif crossover_strategy == "standard":
+        idx = np.random.randint(len(parents[0]))
+        child1, child2 = np.concatenate((parents[0][:idx], parents[1][idx:])), np.concatenate((parents[1][:idx], parents[0][idx:]))
+        child = child1 if solver.test_solution(child1) >= solver.test_solution(child2) else child2
     elif crossover_strategy == "greedy":
         for i in range(len(parents[0])):
             if parents[0][i] == parents[1][i]:
