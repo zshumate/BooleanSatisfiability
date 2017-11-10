@@ -25,6 +25,7 @@ class GASATOptions():
         self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
         self.parser.add_argument('--selection_strategy', default="bin", help="selection strategy for GA")
         self.parser.add_argument('--number_of_bins', type=int, default=5, help="number of bins for binning selection strategy")
+	self.parser.add_argument('--crossover_method', type=int, default=1, help="crossover strategy for GA")
         self.parser.add_argument('--mutation_strategy', default="point", help="mutation strategy for GA")
         self.parser.add_argument('--mutation_prob', type=float, default=.2, help="mutation probability")
         self.parser.add_argument('--generations_limit', type=int, default=100, help="number of generations to continue w/o improvement")
@@ -131,8 +132,17 @@ def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
     return parent_pairs
 
 #combines two parent solutions to produce a child
-def crossover():
-    print "hi"
+def crossover(crossover_method, parents):
+    child = []
+
+    #coin toss method
+    if crossover_method == 1:
+	for x in range(len(parents[0])):
+		if(random.randint(0,1) == 1):
+			child.append(parents[0][x])
+		else:
+			child.append(parents[1][x])
+	return child
 
 #mutates a chromosome within a member of the population
 def mutate(child, mutation_prob, mutation_strategy):
@@ -150,8 +160,15 @@ def combine_via_woc():
     print "hi"
 
 #find the best individual and its cost in the current generation
-def get_best_child():
-    print "hi"
+def get_best_child(solver, children):
+    best_cost = (0,0)
+    individual_costs = [(i, solver.test_solution(children[i])) for i in range(len(children))]
+    print individual_costs
+    
+    for x in range(len(individual_costs)):
+	if individual_costs[x][1] > best_cost[1]:
+		best_cost = individual_costs[x]
+    return best_cost
 
 #solve TSP using a genetic algorithm
 def ga_solve(solver, args):
@@ -163,10 +180,10 @@ def ga_solve(solver, args):
 
     while no_improvement_count < args.generations_limit:
         parents_to_mate = select_mating_pairs(solver, population, args.number_of_bins, args.selection_strategy)
-        children = [crossover() for parents in parents_to_mate]
+        children = [crossover(args.crossover_method, parents) for parents in parents_to_mate]
         children = [mutate(child) for child in children]
         combined_soln, combined_soln_cost = combine_via_woc()
-        best_child, best_child_cost = get_best_child()
+        best_child, best_child_cost = get_best_child(solver, children)
         population = children
 
         if best_child_cost < ((1-args.improvement_limit) *  best_cost):
