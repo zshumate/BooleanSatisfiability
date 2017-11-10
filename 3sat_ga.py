@@ -7,7 +7,9 @@ CECS 545 Final Project
 import argparse
 import time
 import random
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 #constants
@@ -31,6 +33,7 @@ class GASATOptions():
         self.parser.add_argument('--generations_limit', type=int, default=500, help="number of generations to continue w/o improvement")
         self.parser.add_argument('--improvement_limit', type=int, default=1, help="min number of constraints to satisfy to continue training")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
+        self.parser.add_argument('--save_results', type=int, default=0, help="whether to save result images")
 
     def parse_args(self):
         return self.parser.parse_args()
@@ -188,6 +191,31 @@ def get_best_child(solver, children):
 
     return best_individual_cost
 
+#visualize GA results
+def visualize_generation_costs(num_variables, num_clauses, best_child_costs, save_results):
+    generations, child_costs = [], []
+
+    # for generation_data in combined_solution_costs:
+    #     generations.append(generation_data[0])
+    #     combined_costs.append(generation_data[1])
+
+    for generation_data in best_child_costs:
+        generations.append(generation_data[0])
+        child_costs.append(generation_data[1])
+
+    # plt.plot(generations, combined_costs, label="Combined Solution Costs", color="navy")
+    plt.plot(generations, child_costs, label="Best Child Costs", color="darkorange")
+    plt.xlabel("Generation")
+    plt.ylabel("Number of Unsatified Constraints")
+    plt.title("Generation vs. Cost (%d, %d)" % (num_variables, num_clauses))
+    plt.legend(loc="upper right")
+
+    if save_results:
+        file_count = len([name for name in os.listdir("./images") if os.path.isfile("./images/" + name)])
+        plt.savefig("./images/Result%s.png" % (file_count+1))
+
+    plt.show()
+
 #solve TSP using a genetic algorithm
 def ga_solve(solver, args):
     start_time = time.time()
@@ -222,10 +250,14 @@ def ga_solve(solver, args):
         print "Generation %d Best Child: %s" % (generation_count, best_child)
         print "Generation %d Best Child Cost: %g\n" % (generation_count, num_clauses-best_child_cost)
 
+        if num_clauses-best_cost == 0:
+            print "* 3SAT INSTANCE SOLVED *\n"
+            break
+
     print "Execution Time: %g seconds" % (time.time() - start_time)
 
     if args.visualize_results:
-        print "hi"
+        visualize_generation_costs(solver.get_num_variables(), num_clauses, best_child_costs, args.save_results)
 
 
 if __name__ == "__main__":
