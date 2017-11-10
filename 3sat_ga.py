@@ -25,7 +25,7 @@ class GASATOptions():
         self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
         self.parser.add_argument('--selection_strategy', default="bin", help="selection strategy for GA")
         self.parser.add_argument('--number_of_bins', type=int, default=5, help="number of bins for binning selection strategy")
-	self.parser.add_argument('--crossover_method', type=int, default=1, help="crossover strategy for GA")
+        self.parser.add_argument('--crossover_strategy', default="greedy", help="crossover strategy for GA")
         self.parser.add_argument('--mutation_strategy', default="point", help="mutation strategy for GA")
         self.parser.add_argument('--mutation_prob', type=float, default=.2, help="mutation probability")
         self.parser.add_argument('--generations_limit', type=int, default=100, help="number of generations to continue w/o improvement")
@@ -53,18 +53,11 @@ class SATSolver():
                     self.clause_count = int(words[CLAUSE_COUNT_OFFSET])
                     self.variables = [False for i in range(self.variable_count)]
                 else:
-                    clause = []
-
-                    for i in range(len(words[:-1])):
-                        clause.append(int(words[i]))
-
-                    self.clauses.append(clause)
+                    self.clauses.append([int(words[i]) for i in range(len(words[:-1]))])
 
     def makes_true(self, clause, variables):
         for var in clause:
-            if var > 0 and variables[var-1] == 1:
-                return 1
-            elif var < 0  and variables[(-1*var)-1] == 0:
+            if (var > 0 and variables[var-1] == 1) or (var < 0 and variables[(-1*var)-1] == 0):
                 return 1
 
         return 0
@@ -132,16 +125,20 @@ def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
     return parent_pairs
 
 #combines two parent solutions to produce a child
-def crossover(crossover_method, parents):
+def crossover(parents, crossover_strategy):
     child = []
 
     #coin toss method
-    if crossover_method == 1:
-	for x in range(len(parents[0])):
-		if(random.randint(0,1) == 1):
-			child.append(parents[0][x])
-		else:
-			child.append(parents[1][x])
+    if crossover_method == "random":
+        for x in range(len(parents[0])):
+            if(random.randint(0,1) == 1):
+                child.append(parents[0][x])
+            else:
+                child.append(parents[1][x])
+    elif crossover_method == "greedy":
+
+    else:
+        raise NotImplementedError("Invalid choice of crossover strategy!")
 	return child
 
 #mutates a chromosome within a member of the population
@@ -161,14 +158,14 @@ def combine_via_woc():
 
 #find the best individual and its cost in the current generation
 def get_best_child(solver, children):
-    best_cost = (0,0)
+    best_individual_cost = (None, 0)
     individual_costs = [(i, solver.test_solution(children[i])) for i in range(len(children))]
-    print individual_costs
-    
-    for x in range(len(individual_costs)):
-	if individual_costs[x][1] > best_cost[1]:
-		best_cost = individual_costs[x]
-    return best_cost
+
+    for i in range(len(individual_costs)):
+        if individual_costs[i][1] > best_individual_cost[1]:
+            best_individual_cost = individual_costs[i]
+
+    return best_individual_cost
 
 #solve TSP using a genetic algorithm
 def ga_solve(solver, args):
@@ -180,8 +177,8 @@ def ga_solve(solver, args):
 
     while no_improvement_count < args.generations_limit:
         parents_to_mate = select_mating_pairs(solver, population, args.number_of_bins, args.selection_strategy)
-        children = [crossover(args.crossover_method, parents) for parents in parents_to_mate]
-        children = [mutate(child) for child in children]
+        children = [crossover(parents, args.crossover_strategy) for parents in parents_to_mate]
+        children = [mutate(child, args.mutation_prob, args.mutation_strategy) for child in children]
         combined_soln, combined_soln_cost = combine_via_woc()
         best_child, best_child_cost = get_best_child(solver, children)
         population = children
