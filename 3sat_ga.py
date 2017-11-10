@@ -25,6 +25,8 @@ class GASATOptions():
         self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
         self.parser.add_argument('--selection_strategy', default="bin", help="selection strategy for GA")
         self.parser.add_argument('--number_of_bins', type=int, default=5, help="number of bins for binning selection strategy")
+        self.parser.add_argument('--mutation_strategy', default="point", help="mutation strategy for GA")
+        self.parser.add_argument('--mutation_prob', type=float, default=.2, help="mutation probability")
         self.parser.add_argument('--generations_limit', type=int, default=100, help="number of generations to continue w/o improvement")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
@@ -133,9 +135,15 @@ def crossover():
     print "hi"
 
 #mutates a chromosome within a member of the population
-def mutation(variables):
-    rand = random.randint(0,VAR_COUNT_OFFSET)
-    variables[rand] = !variables[rand]
+def mutate(child, mutation_prob, mutation_strategy):
+    if np.random.rand() < mutation_prob:
+        if mutation_strategy == "point":
+            rand_idx = np.random.randint(len(child))
+            child[rand_idx] = 0 if child[rand_idx] == 1 else 1
+        else:
+            raise NotImplementedError("Invalid choice of mutation strategy!")
+
+    return child
 
 #combine population solutions via Wisdom of Crowds and find its weight
 def combine_via_woc():
@@ -156,7 +164,7 @@ def ga_solve(solver, args):
     while no_improvement_count < args.generations_limit:
         parents_to_mate = select_mating_pairs(solver, population, args.number_of_bins, args.selection_strategy)
         children = [crossover() for parents in parents_to_mate]
-        children = [mutate() for child in children]
+        children = [mutate(child) for child in children]
         combined_soln, combined_soln_cost = combine_via_woc()
         best_child, best_child_cost = get_best_child()
         population = children
