@@ -20,15 +20,16 @@ class GASATOptions():
     def __init__(self):
         self.parser = argparse.ArgumentParser()
 
-        self.parser.add_argument('--data_path', default="./sat_data_20_91/uf20-01.cnf", help="data file containing problem to satisfy")
+        self.parser.add_argument('--data_path', required=True, help="data file containing problem to satisfy")
         self.parser.add_argument('--initialization_strategy', default="random", help="initialization strategy for GA population")
         self.parser.add_argument('--population_size', type=int, default=100, help="size of GA population")
         self.parser.add_argument('--selection_strategy', default="bin", help="selection strategy for GA")
         self.parser.add_argument('--number_of_bins', type=int, default=5, help="number of bins for binning selection strategy")
-        self.parser.add_argument('--crossover_strategy', default="greedy", help="crossover strategy for GA")
+        self.parser.add_argument('--crossover_strategy', default="random", help="crossover strategy for GA")
         self.parser.add_argument('--mutation_strategy', default="point", help="mutation strategy for GA")
         self.parser.add_argument('--mutation_prob', type=float, default=.2, help="mutation probability")
-        self.parser.add_argument('--generations_limit', type=int, default=100, help="number of generations to continue w/o improvement")
+        self.parser.add_argument('--generations_limit', type=int, default=500, help="number of generations to continue w/o improvement")
+        self.parser.add_argument('--improvement_limit', type=int, default=1, help="min number of constraints to satisfy to continue training")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
 
     def parse_args(self):
@@ -67,6 +68,20 @@ class SATSolver():
 
         for clause in self.clauses:
             true_count += self.makes_true(clause, variables)
+
+        return true_count
+
+    def test_variable(self, variables, i):
+        true_count = 0
+
+        if variables[i]:
+            for clause in self.clauses:
+                if (i+1) in clause:
+                    true_count += 1
+        else:
+            for clause in self.clauses:
+                if -1*(i+1) in clause:
+                    true_count += 1
 
         return true_count
 
@@ -125,21 +140,28 @@ def select_mating_pairs(solver, population, number_of_bins, selection_strategy):
     return parent_pairs
 
 #combines two parent solutions to produce a child
-def crossover(parents, crossover_strategy):
+def crossover(solver, parents, crossover_strategy):
     child = []
 
-    #coin toss method
-    if crossover_method == "random":
-        for x in range(len(parents[0])):
-            if(random.randint(0,1) == 1):
-                child.append(parents[0][x])
+    if crossover_strategy == "random":
+        for i in range(len(parents[0])):
+            if(np.random.rand() > .5):
+                child.append(parents[0][i])
             else:
-                child.append(parents[1][x])
-    elif crossover_method == "greedy":
-
+                child.append(parents[1][i])
+    elif crossover_strategy == "greedy":
+        for i in range(len(parents[0])):
+            if parents[0][i] == parents[1][i]:
+                child.append(parents[0][i])
+            else:
+                if solver.test_variable(parents[0], i) >= solver.test_variable(parents[1], i):
+                    child.append(parents[0][i])
+                else:
+                    child.append(parents[1][i])
     else:
         raise NotImplementedError("Invalid choice of crossover strategy!")
-	return child
+
+    return child
 
 #mutates a chromosome within a member of the population
 def mutate(child, mutation_prob, mutation_strategy):
@@ -159,7 +181,7 @@ def combine_via_woc():
 #find the best individual and its cost in the current generation
 def get_best_child(solver, children):
     best_individual_cost = (None, 0)
-    individual_costs = [(i, solver.test_solution(children[i])) for i in range(len(children))]
+    individual_costs = [(child, solver.test_solution(child)) for child in children]
 
     for i in range(len(individual_costs)):
         if individual_costs[i][1] > best_individual_cost[1]:
@@ -172,18 +194,18 @@ def ga_solve(solver, args):
     start_time = time.time()
     population = initialize_population(solver, args.population_size, args.initialization_strategy)
     generation_count, no_improvement_count = 0, 0
-    best_cost, best_solution = np.inf, None
+    best_cost, best_solution, num_clauses = 0, None, solver.get_num_clauses()
     combined_solution_costs, best_child_costs = [], []
 
     while no_improvement_count < args.generations_limit:
         parents_to_mate = select_mating_pairs(solver, population, args.number_of_bins, args.selection_strategy)
-        children = [crossover(parents, args.crossover_strategy) for parents in parents_to_mate]
+        children = [crossover(solver, parents, args.crossover_strategy) for parents in parents_to_mate]
         children = [mutate(child, args.mutation_prob, args.mutation_strategy) for child in children]
-        combined_soln, combined_soln_cost = combine_via_woc()
+        # combined_soln, combined_soln_cost = combine_via_woc()
         best_child, best_child_cost = get_best_child(solver, children)
         population = children
 
-        if best_child_cost < ((1-args.improvement_limit) *  best_cost):
+        if best_child_cost >= (args.improvement_limit + best_cost):
             best_solution = best_child
             best_cost = best_child_cost
             no_improvement_count = 0
@@ -191,15 +213,15 @@ def ga_solve(solver, args):
             no_improvement_count += 1
 
         generation_count += 1
-        combined_solution_costs.append((generation_count, combined_soln_cost))
-        best_child_costs.append((generation_count, best_child_cost))
+        # combined_solution_costs.append((generation_count, num_clauses-combined_soln_cost))
+        best_child_costs.append((generation_count, num_clauses-best_child_cost))
 
         print "Overall Best Solution: %s" % best_solution
-        print "Overall Best Solution Cost: %g" % best_cost
-        print "Generation %d Combined Solution: %s" % (generation_count, combined_soln)
-        print "Generation %d Combined Solution Cost: %g" % (generation_count, combined_soln_cost)
+        print "Overall Best Solution Cost: %g" % (num_clauses-best_cost)
+        # print "Generation %d Combined Solution: %s" % (generation_count, combined_soln)
+        # print "Generation %d Combined Solution Cost: %g" % (generation_count, num_clauses-combined_soln_cost)
         print "Generation %d Best Child: %s" % (generation_count, best_child)
-        print "Generation %d Best Child Cost: %g\n" % (generation_count, best_child_cost)
+        print "Generation %d Best Child Cost: %g\n" % (generation_count, num_clauses-best_child_cost)
 
     print "Execution Time: %g seconds" % (time.time() - start_time)
 
