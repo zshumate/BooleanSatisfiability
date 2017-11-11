@@ -177,6 +177,13 @@ def mutate(child, mutation_prob, mutation_strategy):
         if mutation_strategy == "point":
             rand_idx = np.random.randint(len(child))
             child[rand_idx] = 0 if child[rand_idx] == 1 else 1
+	elif mutation_strategy == "pairswap":
+	    randomNumber = np.random.randint(len(child))
+	    while randomNumber != 0:
+		switch1 = np.random.randint(len(child))
+		switch2 = np.random.randint(len(child))
+		child[switch1], child[switch2] = child[switch2], child[switch1]			
+		randomNumber -= 1
         else:
             raise NotImplementedError("Invalid choice of mutation strategy!")
 
