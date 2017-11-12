@@ -30,6 +30,7 @@ class GASATOptions():
         self.parser.add_argument('--crossover_strategy', default="random", help="crossover strategy for GA")
         self.parser.add_argument('--mutation_strategy', default="point", help="mutation strategy for GA")
         self.parser.add_argument('--mutation_prob', type=float, default=.2, help="mutation probability")
+        self.parser.add_argument('--woc_strategy', default="greedy", help="wisdom of crowds strategy for GA")
         self.parser.add_argument('--generations_limit', type=int, default=500, help="number of generations to continue w/o improvement")
         self.parser.add_argument('--improvement_limit', type=int, default=1, help="min number of constraints to satisfy to continue training")
         self.parser.add_argument('--visualize_results', type=int, default=1, help="whether to visualize results")
@@ -191,24 +192,29 @@ def mutate(child, mutation_prob, mutation_strategy):
 
 #combine population solutions via Wisdom of Crowds and find its weight
 def combine_via_woc(population, woc_strategy):
-    agree, disagree, wisdom = [], [], []
+    agreement, wisdom = [], []
     for i in range(VAR_COUNT_OFFSET):
-        agree.append(0)
-        disagree.append(0)
-    if woc_strategy == "weighted":
-        for p in population:
-            for i in range(len(p))
-                if p[i] == 1:
-                    agree[i] += 1;
-                else:
-                    disagree[i] += 1;
-        for i in range(len(agree)):
-            if agree[i] >= (len(population)*.9):
+        agreement.append(0)
+    for p in population:
+        for i in range(len(p)):
+            if p[i] == 1:
+                agreement[i] += 1;
+            else:
+                agreement[i] -= 1;
+    if woc_strategy == "weighted":      # NOT finished
+        for i in range(len(agreement)):
+            if agreement[i] >= (len(population)*.8):
                 wisdom[i] = 1
-            elif disagree[i] >= (len(population)*.9):
+            elif agreement[i] <= (len(population)*(-.8)):
                 wisdom[i] = 0
         for i in range(len(wisdom)):
-            
+            print 'hi'
+    elif woc_strategy == "greedy":
+        for i in range(len(agreement)):
+            if agreement[i] >= 0:
+                wisdom[i] = 1
+            elif agreement[i] <= 0:
+                wisdom[i] = 0
     else:
         raise NotImplementedError("Invalid choice of wisdom of crowds strategy!")
 
