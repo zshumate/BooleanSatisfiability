@@ -179,7 +179,7 @@ def mutate(child, mutation_prob, mutation_strategy):
             rand_idx = np.random.randint(len(child))
             child[rand_idx] = 0 if child[rand_idx] == 1 else 1
 	elif mutation_strategy == "pairswap":
-	    randomNumber = np.random.randint(len(child))
+	    randomNumber = np.random.randint(5)
 	    while randomNumber != 0:
 		switch1 = np.random.randint(len(child))
 		switch2 = np.random.randint(len(child))
@@ -196,7 +196,6 @@ def combine_via_woc(population, woc_strategy):
     for i in range(len(population[0])):
         agreement.append(0)
         wisdom.append(0)
-    print agreement
     for p in population:
         for i in range(len(p)):
             if p[i] == 1:
@@ -296,7 +295,7 @@ def ga_solve(solver, args):
         print "Generation %d Best Child Cost: %g" % (generation_count, num_clauses-best_child_cost)
 
         print "Wisdom of Crowds Solution: %s" % woc_solution
-        print "Wisdom of Crowds Solution: %s\n" % woc_cost
+        print "Wisdom of Crowds Solution Cost: %s\n" % (num_clauses-woc_cost)
 
         if num_clauses-best_cost == 0:
             print "* 3SAT INSTANCE SOLVED *\n"
